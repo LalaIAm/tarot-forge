@@ -97,3 +97,17 @@ class Asset(Base):
         Index("ix_assets_deck_id", "deck_id"),
         Index("ix_assets_kind", "kind"),
     )
+
+
+class Job(Base):
+    """DB-backed job queue for style_bible and deck workers."""
+
+    __tablename__ = "jobs"
+
+    id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=uuid4_str)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
+    payload: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (Index("ix_jobs_type_status", "type", "status"),)

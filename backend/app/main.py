@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db import init_db
-from app.routers import sessions
+from app.routers import sessions, style_bible
 
 
 @asynccontextmanager
@@ -15,6 +15,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Vibe Tarot API", lifespan=lifespan)
 
 app.include_router(sessions.router)
+app.include_router(style_bible.router)
 
 
 @app.get("/health")
