@@ -1,13 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.config import get_settings
 
 settings = get_settings()
-engine = create_engine(
-    settings.database_url,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
-)
+connect_args = {}
+if "sqlite" in settings.database_url:
+    connect_args["check_same_thread"] = False
+# Use StaticPool for sqlite :memory: so all threads (e.g. TestClient request thread) share the same DB
+kwargs = {"connect_args": connect_args} if connect_args else {}
+if ":memory:" in settings.database_url:
+    kwargs["poolclass"] = StaticPool
+engine = create_engine(settings.database_url, **kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
