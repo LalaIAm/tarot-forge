@@ -30,3 +30,25 @@ class StyleBibleOutput(BaseModel):
 ## Tone
 {self.tone}
 """
+
+
+class MeaningDescription(BaseModel):
+    """Tarot Scholar output: meaning and description for a card."""
+
+    meaning: str = Field(..., description="Tarot meaning and symbolism")
+    description: str = Field(..., description="Short narrative description for the card")
+
+
+class ImagePromptOutput(BaseModel):
+    """Visual Designer output: image prompt for one card."""
+
+    image_prompt: str = Field(..., description="Prompt for image generation matching style bible")
+
+
+class CardConcept(BaseModel):
+    """Per-card concept from Tarot Scholar + Visual Designer: name, meaning, description, image_prompt."""
+
+    name: str = Field(..., description="Card name (e.g. The Fool)")
+    meaning: str = Field(..., description="Tarot meaning and symbolism")
+    description: str = Field(..., description="Short narrative description for the card")
+    image_prompt: str = Field(..., description="Prompt for image generation matching style bible")
