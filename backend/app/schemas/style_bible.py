@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -22,3 +24,18 @@ class StyleBibleJobOut(BaseModel):
     session_id: str
     style_bible_id: str
     status: str = "generating"
+
+
+class StyleBibleOut(BaseModel):
+    id: str
+    session_id: str
+    status: str
+    content: str | None
+    revision: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RequestChangesBody(BaseModel):
+    feedback: str = Field(..., min_length=1, max_length=10_000)

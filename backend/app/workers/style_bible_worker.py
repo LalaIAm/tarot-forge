@@ -41,9 +41,9 @@ def process_style_bible_job(db: Session, job: Job) -> None:
         db.commit()
         raise ValueError(f"StyleBible {style_bible_id} not found")
 
-    creative_direction = payload.get("creative_direction", "")
-    medium = payload.get("medium", "")
-    deck_size = int(payload.get("deck_size", 78))
+    creative_direction = payload.get("creative_direction") or style_bible.creative_direction or ""
+    medium = payload.get("medium") or style_bible.medium or ""
+    deck_size = int(payload.get("deck_size") or style_bible.deck_size or 78)
     feedback = payload.get("feedback")
 
     try:

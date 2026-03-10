@@ -1,31 +1,7 @@
-# Same DB override pattern as test_sessions_api: in-memory + StaticPool
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.db import Base, get_db
-from app import models  # noqa: F401
 from app.main import app
 
-_engine = create_engine(
-    "sqlite:///:memory:",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-Base.metadata.create_all(bind=_engine)
-_SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
-
-
-def _override_get_db():
-    db = _SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = _override_get_db
 client = TestClient(app)
 
 

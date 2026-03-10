@@ -6,7 +6,8 @@ from crewai import Process
 
 from app.crews.outputs import StyleBibleOutput
 from app.crews.style_bible_crew import build_style_bible_crew
-from app.workers.style_bible_worker import get_next_style_bible_job, process_style_bible_job
+from app.models import Job
+from app.workers.style_bible_worker import process_style_bible_job
 
 
 def test_build_style_bible_crew_has_three_agents_and_three_tasks():
@@ -36,31 +37,11 @@ def test_style_bible_output_to_markdown():
 
 def test_process_style_bible_job_updates_db():
     from fastapi.testclient import TestClient
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from sqlalchemy.pool import StaticPool
 
-    from app.db import Base, get_db
-    from app import models  # noqa: F401
+    from app import models
     from app.main import app
-    from app.workers.queue import enqueue_style_bible
+    from tests.shared_db import SessionLocal
 
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    def _get_db():
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _get_db
     client = TestClient(app)
 
     # Enqueue a job (creates session + style_bible + job)
@@ -75,8 +56,15 @@ def test_process_style_bible_job_updates_db():
     assert r.status_code == 202
     style_bible_id = r.json()["style_bible_id"]
 
+    import json as _json
+
     db = SessionLocal()
-    job = get_next_style_bible_job(db)
+    # Get the job for this test's style_bible (shared DB may have other pending jobs)
+    all_jobs = db.query(Job).filter(Job.type == "style_bible", Job.status == "pending").all()
+    job = next(
+        (j for j in all_jobs if _json.loads(j.payload).get("style_bible_id") == style_bible_id),
+        None,
+    )
     assert job is not None
 
     mock_output = StyleBibleOutput(

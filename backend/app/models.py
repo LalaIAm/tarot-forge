@@ -33,6 +33,10 @@ class StyleBible(Base):
     content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     revision: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    # Stored so request-changes can re-run crew without creating a new row
+    creative_direction: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    medium: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    deck_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     session = relationship("Session", back_populates="style_bibles")
     decks = relationship("Deck", back_populates="style_bible")
