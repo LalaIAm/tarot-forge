@@ -1,5 +1,7 @@
 """Pydantic models for CrewAI task outputs. Used with output_pydantic on tasks."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -52,3 +54,17 @@ class CardConcept(BaseModel):
     meaning: str = Field(..., description="Tarot meaning and symbolism")
     description: str = Field(..., description="Short narrative description for the card")
     image_prompt: str = Field(..., description="Prompt for image generation matching style bible")
+
+
+class ApproveReject(BaseModel):
+    """Evaluator output: approve or reject the card image, with optional feedback for reprompting."""
+
+    decision: Literal["APPROVE", "REJECT"] = Field(..., description="APPROVE or REJECT")
+    feedback: str | None = Field(None, description="If REJECT, short reprompting feedback for the refiner")
+
+
+class RefinedPrompt(BaseModel):
+    """Refiner output: updated image prompt and optional description after evaluator feedback."""
+
+    image_prompt: str = Field(..., description="Updated image prompt incorporating feedback")
+    description: str | None = Field(None, description="Optional updated card description")

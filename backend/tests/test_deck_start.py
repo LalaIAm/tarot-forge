@@ -118,3 +118,105 @@ def test_create_deck_404_unknown_style_bible():
         json={"style_bible_id": "00000000-0000-0000-0000-000000000000", "deck_size": 78},
     )
     assert r.status_code == 404
+
+
+def test_get_deck_returns_metadata_and_progress():
+    r0 = client.post(
+        "/style-bible",
+        json={"creative_direction": "g", "medium": "m", "deck_size": 22},
+    )
+    assert r0.status_code == 202
+    session_id = r0.json()["session_id"]
+    style_bible_id = r0.json()["style_bible_id"]
+    db = SessionLocal()
+    db.query(models.StyleBible).filter(models.StyleBible.id == style_bible_id).update({"status": "approved"})
+    db.commit()
+    db.close()
+    r = client.post(
+        f"/sessions/{session_id}/decks",
+        json={"style_bible_id": style_bible_id, "deck_size": 22},
+    )
+    assert r.status_code == 201
+    deck_id = r.json()["id"]
+    r2 = client.get(f"/decks/{deck_id}")
+    assert r2.status_code == 200
+    data = r2.json()
+    assert data["id"] == deck_id
+    assert data["session_id"] == session_id
+    assert data["status"] == "pending"
+    assert data["deck_size"] == 22
+    assert data["total_cards"] == 22
+    assert data["approved_count"] == 0
+    assert "cards" not in data or data["cards"] is None
+
+
+def test_get_deck_include_cards_returns_cards_with_image_url():
+    r0 = client.post(
+        "/style-bible",
+        json={"creative_direction": "g", "medium": "m", "deck_size": 22},
+    )
+    assert r0.status_code == 202
+    session_id = r0.json()["session_id"]
+    style_bible_id = r0.json()["style_bible_id"]
+    db = SessionLocal()
+    db.query(models.StyleBible).filter(models.StyleBible.id == style_bible_id).update({"status": "approved"})
+    db.commit()
+    db.close()
+    r = client.post(
+        f"/sessions/{session_id}/decks",
+        json={"style_bible_id": style_bible_id, "deck_size": 22},
+    )
+    assert r.status_code == 201
+    deck_id = r.json()["id"]
+    r2 = client.get(f"/decks/{deck_id}?include=cards")
+    assert r2.status_code == 200
+    data = r2.json()
+    assert data["total_cards"] == 22
+    assert "cards" in data and data["cards"] is not None
+    assert len(data["cards"]) == 22
+    first = data["cards"][0]
+    assert "id" in first and "position" in first and "name" in first and "status" in first
+    assert first.get("image_url") is None  # no image asset yet
+    db = SessionLocal()
+    card = db.query(models.Card).filter(models.Card.deck_id == deck_id).order_by(models.Card.position).first()
+    card_id = card.id
+    asset = models.Asset(
+        id="a1",
+        card_id=card_id,
+        deck_id=deck_id,
+        kind="image",
+        storage_path="decks/ignored/file.png",
+    )
+    db.add(asset)
+    db.commit()
+    db.close()
+    r3 = client.get(f"/decks/{deck_id}?include=cards")
+    assert r3.status_code == 200
+    cards_with_url = [c for c in r3.json()["cards"] if c.get("image_url")]
+    assert len(cards_with_url) >= 1
+    assert cards_with_url[0]["image_url"] == f"/decks/{deck_id}/cards/{card_id}/image"
+
+
+def test_get_deck_404():
+    r = client.get("/decks/00000000-0000-0000-0000-000000000000")
+    assert r.status_code == 404
+
+
+def test_get_card_image_404_no_asset():
+    r0 = client.post("/style-bible", json={"creative_direction": "x", "medium": "y", "deck_size": 22})
+    session_id = r0.json()["session_id"]
+    style_bible_id = r0.json()["style_bible_id"]
+    db = SessionLocal()
+    db.query(models.StyleBible).filter(models.StyleBible.id == style_bible_id).update({"status": "approved"})
+    db.commit()
+    db.close()
+    r = client.post(
+        f"/sessions/{session_id}/decks",
+        json={"style_bible_id": style_bible_id, "deck_size": 22},
+    )
+    deck_id = r.json()["id"]
+    db = SessionLocal()
+    card = db.query(models.Card).filter(models.Card.deck_id == deck_id).first()
+    db.close()
+    r2 = client.get(f"/decks/{deck_id}/cards/{card.id}/image")
+    assert r2.status_code == 404

@@ -24,3 +24,33 @@ class DeckOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CardGalleryItem(BaseModel):
+    """Card fields plus image URL for gallery display."""
+
+    id: str
+    position: int
+    name: str | None
+    meaning: str | None
+    description: str | None
+    status: str
+    image_url: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DeckDetailOut(BaseModel):
+    """Deck with progress and optional cards for gallery."""
+
+    id: str
+    session_id: str
+    style_bible_id: str
+    status: str
+    deck_size: int
+    created_at: datetime
+    approved_count: int = 0
+    total_cards: int = 0
+    cards: list[CardGalleryItem] | None = None
+
+    model_config = ConfigDict(from_attributes=True)
